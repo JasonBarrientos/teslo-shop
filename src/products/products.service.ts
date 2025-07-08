@@ -1,11 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Product } from './entities/product.entity';
 
 @Injectable()
 export class ProductsService {
-  create(createProductDto: CreateProductDto) {
-    return 'This action adds a new product';
+  private readonly logger= new Logger(ProductsService.name);
+  constructor(@InjectRepository(Product) private readonly productRepository: Repository<Product>) {
+
+  }
+
+  async create(createProductDto: CreateProductDto) {
+    try {
+      if (!createProductDto.slug) {
+        createProductDto.slug = createProductDto.title + "-Slug"
+      }
+
+      let product = this.productRepository.create(createProductDto)
+      await this.productRepository.save(createProductDto)
+      return product;
+    } catch (error) {
+      this.errorDbHandler(error)
+    }
   }
 
   findAll() {
@@ -22,5 +40,15 @@ export class ProductsService {
 
   remove(id: number) {
     return `This action removes a #${id} product`;
+  }
+  private errorDbHandler(error) {
+
+    this.logger.error(error.detail)
+    switch (error.code) {
+      case '23505':
+        throw new BadRequestException(error.detail);
+      default:
+        throw new InternalServerErrorException(" Error inespErado revisar logs");
+    }
   }
 }
