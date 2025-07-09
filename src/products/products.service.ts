@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
+import { validate } from "uuid";
 @Injectable()
 export class ProductsService {
   private readonly logger= new Logger(ProductsService.name);
@@ -33,9 +34,20 @@ export class ProductsService {
     return products;
   }
 
-  async findOne(id: string) {
+  async findOne(term: string) {
       try {
-        let product= await this.productRepository.findOneBy({id});        
+        let product;
+        if (validate(term)) {
+          product = await this.productRepository.findOneBy({id:term});        
+
+        }else{
+          const queryBulider =  this.productRepository.createQueryBuilder();
+          product = await queryBulider.where('UPPER(title)=:title or slug=:slug',{
+            title:term.toUpperCase(),
+            slug:term.toLowerCase()
+          }).getOne()
+        }
+
         return product;
       } catch (error) {
         this.errorDbHandler(error)
@@ -52,6 +64,7 @@ export class ProductsService {
     return `This action removes a #${id} product`;
   }
   private errorDbHandler(error) {    
+    this.logger.error(error)
     switch (error.code) {
       case '23505':
         throw new BadRequestException(error.detail);
