@@ -3,20 +3,24 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Product } from './entities/product.entity';
+import { Product , ProductImage} from './entities/';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 import { validate } from "uuid";
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
-  constructor(@InjectRepository(Product) private readonly productRepository: Repository<Product>) {
+  constructor(@InjectRepository(Product) private readonly productRepository: Repository<Product>,@InjectRepository(ProductImage) private readonly productImageRepository: Repository<ProductImage>) {
 
   }
 
   async create(createProductDto: CreateProductDto) {
     try {
-      let product = this.productRepository.create(createProductDto)
+      const {images=[], ...productDetails} = createProductDto;
+      const  product= this.productRepository.create(
+        {...productDetails,
+          images:images.map(imageUrl => this.productImageRepository.create({url:imageUrl}))})
+      
       await this.productRepository.save(product)
       return product;
     } catch (error) {
@@ -58,7 +62,8 @@ export class ProductsService {
     try {
       const product = await this.productRepository.preload({
         id,
-        ...updateProductDto
+        ...updateProductDto,
+        images:[]
       })
       if (!product) {
         throw new BadRequestException(`Porduct with id ${id} not found`)
