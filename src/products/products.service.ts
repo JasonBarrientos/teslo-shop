@@ -29,27 +29,36 @@ export class ProductsService {
   }
 
   async findAll(paginationDto: PaginationDto) {
-    let { limit = 10, offset = 0 } = paginationDto
-    let products = await this.productRepository.find({
+    const  { limit = 10, offset = 0 } = paginationDto
+    const products = await this.productRepository.find({
       take: limit,
-      skip: offset
-      //TODO:relacione
+      skip: offset,
+      relations:{
+        images: true
+      }
     });
-    return products;
+    return products.map(product => ({
+      ...product,
+      images: product.images?.map(image=>image.url)
+    }));
   }
 
   async findOne(term: string) {
     try {
       let product;
+
       if (validate(term)) {
         product = await this.productRepository.findOneBy({ id: term });
+        product= {
+          ...product
+        }
 
       } else {
-        const queryBulider = this.productRepository.createQueryBuilder();
+        const queryBulider = this.productRepository.createQueryBuilder('prod');
         product = await queryBulider.where('UPPER(title)=:title or slug=:slug', {
           title: term.toUpperCase(),
           slug: term.toLowerCase()
-        }).getOne()
+        }).leftJoinAndSelect('prod.images','prodImages').getOne()
       }
 
       return product;
@@ -90,6 +99,13 @@ export class ProductsService {
         throw new NotFoundException(`Product with id ${error.parameters[0]} not found.`);
       default:
         throw new InternalServerErrorException(" Error inespErado revisar logs");
+    }
+  }
+  async findOnePlain(term:string){
+    const {images =[],...rest} = await this.findOne(term);
+    return {
+      ...rest,
+      images:images.map(img=> img.url)
     }
   }
 }
