@@ -111,9 +111,10 @@ export class ProductsService {
 
   async remove(id: string) {
     let product = await this.findOne(id)
-    await this.productRepository.delete({ id: id })
+    await this.productRepository.remove(product)
     return `This action removes a #${id} product`;
   }
+
   private errorDbHandler(error) {
     this.logger.error(error)
     switch (error.code) {
@@ -125,11 +126,22 @@ export class ProductsService {
         throw new InternalServerErrorException(" Error inespErado revisar logs");
     }
   }
+
   async findOnePlain(term: string) {
     const { images = [], ...rest } = await this.findOne(term);
     return {
       ...rest,
       images: images.map(img => img.url)
+    }
+  }
+
+  async deletaAllProducts() {
+    const query = this.productRepository.createQueryBuilder('products');
+    try {
+      return await query.delete().where({}).execute();
+
+    } catch (error) {
+      this.errorDbHandler(error)
     }
   }
 }
