@@ -2,44 +2,49 @@ import { BadRequestException, Injectable, InternalServerErrorException, Logger, 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Product , ProductImage} from './entities/';
+import { DataSource, Repository } from 'typeorm';
+import { Product, ProductImage } from './entities/';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 import { validate } from "uuid";
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
-  constructor(@InjectRepository(Product) private readonly productRepository: Repository<Product>,@InjectRepository(ProductImage) private readonly productImageRepository: Repository<ProductImage>) {
+  constructor(@InjectRepository(Product) private readonly productRepository: Repository<Product>,
+   @InjectRepository(ProductImage) private readonly productImageRepository: Repository<ProductImage>,
+    private readonly dataSource: DataSource
+  ) {
 
   }
 
   async create(createProductDto: CreateProductDto) {
     try {
-      const {images=[], ...productDetails} = createProductDto;
-      const  product= this.productRepository.create(
-        {...productDetails,
-          images:images.map(imageUrl => this.productImageRepository.create({url:imageUrl}))})
-      
+      const { images = [], ...productDetails } = createProductDto;
+      const product = this.productRepository.create(
+        {
+          ...productDetails,
+          images: images.map(imageUrl => this.productImageRepository.create({ url: imageUrl }))
+        })
+
       await this.productRepository.save(product)
-      return {...product,images};
+      return { ...product, images };
     } catch (error) {
       this.errorDbHandler(error)
     }
   }
 
   async findAll(paginationDto: PaginationDto) {
-    const  { limit = 10, offset = 0 } = paginationDto
+    const { limit = 10, offset = 0 } = paginationDto
     const products = await this.productRepository.find({
       take: limit,
       skip: offset,
-      relations:{
+      relations: {
         images: true
       }
     });
     return products.map(product => ({
       ...product,
-      images: product.images?.map(image=>image.url)
+      images: product.images?.map(image => image.url)
     }));
   }
 
@@ -49,7 +54,7 @@ export class ProductsService {
 
       if (validate(term)) {
         product = await this.productRepository.findOneBy({ id: term });
-        product= {
+        product = {
           ...product
         }
 
@@ -58,7 +63,7 @@ export class ProductsService {
         product = await queryBulider.where('UPPER(title)=:title or slug=:slug', {
           title: term.toUpperCase(),
           slug: term.toLowerCase()
-        }).leftJoinAndSelect('prod.images','prodImages').getOne()
+        }).leftJoinAndSelect('prod.images', 'prodImages').getOne()
       }
 
       return product;
@@ -69,14 +74,14 @@ export class ProductsService {
 
   async update(id: string, updateProductDto: UpdateProductDto) {
     try {
-      const product = await this.productRepository.preload({
-        id,
-        ...updateProductDto,
-        images:[]
-      })
-      if (!product) {
-        throw new BadRequestException(`Porduct with id ${id} not found`)
-      }
+      const { images, ...toUpdate } = updateProductDto;
+      const product = await this.productRepository.preload({ id,  ...toUpdate})
+
+      if (!product)  throw new BadRequestException(`Porduct with id ${id} not found`)
+      
+      //crate query runner 
+      const queryrunner = this.dataSource.createQueryRunner()
+
       await this.productRepository.save(product);
 
       return product;
@@ -101,11 +106,11 @@ export class ProductsService {
         throw new InternalServerErrorException(" Error inespErado revisar logs");
     }
   }
-  async findOnePlain(term:string){
-    const {images =[],...rest} = await this.findOne(term);
+  async findOnePlain(term: string) {
+    const { images = [], ...rest } = await this.findOne(term);
     return {
       ...rest,
-      images:images.map(img=> img.url)
+      images: images.map(img => img.url)
     }
   }
 }
