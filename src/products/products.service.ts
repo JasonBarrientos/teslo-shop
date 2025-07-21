@@ -11,7 +11,7 @@ import { validate } from "uuid";
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
   constructor(@InjectRepository(Product) private readonly productRepository: Repository<Product>,
-   @InjectRepository(ProductImage) private readonly productImageRepository: Repository<ProductImage>,
+    @InjectRepository(ProductImage) private readonly productImageRepository: Repository<ProductImage>,
     private readonly dataSource: DataSource
   ) {
 
@@ -73,19 +73,38 @@ export class ProductsService {
   }
 
   async update(id: string, updateProductDto: UpdateProductDto) {
+
+    const { images, ...toUpdate } = updateProductDto;
+    const product = await this.productRepository.preload({ id, ...toUpdate })
+
+    if (!product) throw new BadRequestException(`Porduct with id ${id} not found`)
+
+    //crate query runner 
+    const queryrunner = this.dataSource.createQueryRunner();
+    await queryrunner.connect()
+    await queryrunner.startTransaction();
+
     try {
-      const { images, ...toUpdate } = updateProductDto;
-      const product = await this.productRepository.preload({ id,  ...toUpdate})
+      if (images) {
+        queryrunner.manager.delete(ProductImage, { product: id })
+        product.images = images.map(image => this.productImageRepository.create({ url: image }));
+      } else {
 
-      if (!product)  throw new BadRequestException(`Porduct with id ${id} not found`)
-      
-      //crate query runner 
-      const queryrunner = this.dataSource.createQueryRunner()
+      }
 
-      await this.productRepository.save(product);
+      await queryrunner.manager.save(product)
+      // await this.productRepository.save(product);
+      await queryrunner.commitTransaction();
+      await queryrunner.release();//descoenctr query runner
 
-      return product;
+      return this.findOnePlain(id);
     } catch (error) {
+
+      await queryrunner.rollbackTransaction();
+      await queryrunner.release();//descoenctr query runner
+
+      console.log(error);
+
       this.errorDbHandler(error)
     }
   }
