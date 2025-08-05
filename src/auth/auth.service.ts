@@ -4,6 +4,7 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { EntitySchema, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as  bcrypt from "bcrypt";
 
 @Injectable()
 export class AuthService {
@@ -12,8 +13,13 @@ export class AuthService {
   }
   async create(createAuthDto: CreateUserDto) {
        try {
-        let user= this.userRepository.create(createAuthDto)
+        let {password,...userDetail}= createAuthDto
+        let user= this.userRepository.create({
+          ...userDetail,
+          password: bcrypt.hashSync(password,10)
+        })
        await this.userRepository.save(user);
+       
       return user;
        } catch (error) {
           this.erroHandler(error)
@@ -24,8 +30,7 @@ export class AuthService {
       case '23505':
           throw new BadRequestException(err.detail)
       default:
-                  throw new InternalServerErrorException(`error no identificado: ${err.detail}`)
-        
+          throw new InternalServerErrorException(`error no identificado: ${err.detail}`)
     }
   }
 
