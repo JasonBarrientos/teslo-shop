@@ -5,6 +5,7 @@ import { ProductsModule } from './products/products.module';
 import { CommonModule } from './common/common.module';
 import { MessagesWsModule } from './messages-ws/messages-ws.module';
 import { SeedModule } from './seed/seed.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [ConfigModule.forRoot(),
@@ -21,7 +22,8 @@ import { SeedModule } from './seed/seed.module';
     ProductsModule,
     CommonModule,
     MessagesWsModule,
-    SeedModule
+    SeedModule,
+    AuthModule
   ],
   controllers: [],
   providers: [],
