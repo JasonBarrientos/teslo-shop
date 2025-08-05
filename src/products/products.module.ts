@@ -10,5 +10,6 @@ import { Product,ProductImage } from './entities/index';
   ])],
   controllers: [ProductsController],
   providers: [ProductsService],
+  exports:[ProductsService, TypeOrmModule]
 })
 export class ProductsModule {}
