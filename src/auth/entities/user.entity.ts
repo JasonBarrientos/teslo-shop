@@ -11,10 +11,10 @@ export class User {
     @Column({ type: 'text' })
     fullName: string;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', select: false })
     password: string;
 
-    @Column({ type: 'bool', default: true })
+    @Column({ type: 'bool', default: true , select:false})
     isActive: boolean;
 
     @Column({ type: 'text', array: true, default: ['user'] })

@@ -1,36 +1,53 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { EntitySchema, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as  bcrypt from "bcrypt";
+import { LoginUserDto } from './dto/login-user.dto copy';
 
 @Injectable()
 export class AuthService {
-  constructor (@InjectRepository(User) private readonly userRepository: Repository<User> ){
+  constructor(@InjectRepository(User) private readonly userRepository: Repository<User>) {
 
   }
   async create(createAuthDto: CreateUserDto) {
-       try {
-        let {password,...userDetail}= createAuthDto
-        let user= this.userRepository.create({
-          ...userDetail,
-          password: bcrypt.hashSync(password,10)
-        })
-       await this.userRepository.save(user);
-       
+    try {
+      let { password, ...userDetail } = createAuthDto
+      let user = this.userRepository.create({
+        ...userDetail,
+        password: bcrypt.hashSync(password, 10)
+      })
+      await this.userRepository.save(user);
+
       return user;
-       } catch (error) {
-          this.erroHandler(error)
-       }
+    } catch (error) {
+      this.erroHandler(error)
+    }
   }
-  private erroHandler (err): never{
+  async login(loginUserDto: LoginUserDto) {
+    const { password, email } = loginUserDto;
+    const user = await this.userRepository.findOne({
+      where: {
+        email
+      },
+      select: { email: true, password: true }
+    });
+    if (!user) {
+      throw new UnauthorizedException(`Credencials are nto valid (email)`)
+    }
+    if (!bcrypt.compareSync(password,user.password)) {
+      throw new UnauthorizedException(`Credencials are nto valid (password)`)
+    }
+    return user;
+  }
+  private erroHandler(err): never {
     switch (err.code) {
       case '23505':
-          throw new BadRequestException(err.detail)
+        throw new BadRequestException(err.detail)
       default:
-          throw new InternalServerErrorException(`error no identificado: ${err.detail}`)
+        throw new InternalServerErrorException(`error no identificado: ${err.detail}`)
     }
   }
 
