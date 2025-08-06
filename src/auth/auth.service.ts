@@ -1,15 +1,16 @@
 import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
-import { EntitySchema, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as  bcrypt from "bcrypt";
 import { LoginUserDto } from './dto/login-user.dto copy';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectRepository(User) private readonly userRepository: Repository<User>) {
+  constructor(@InjectRepository(User) private readonly userRepository: Repository<User>, private readonly jwtService: JwtService) {
 
   }
   async create(createAuthDto: CreateUserDto) {
@@ -21,7 +22,9 @@ export class AuthService {
       })
       await this.userRepository.save(user);
 
-      return user;
+      return {...user,
+      token: this.getJwtToken({email:user.email})
+    };;
     } catch (error) {
       this.erroHandler(error)
     }
@@ -40,7 +43,9 @@ export class AuthService {
     if (!bcrypt.compareSync(password,user.password)) {
       throw new UnauthorizedException(`Credencials are nto valid (password)`)
     }
-    return user;
+    return {...user,
+      token: this.getJwtToken({email})
+    };
   }
   private erroHandler(err): never {
     switch (err.code) {
@@ -49,6 +54,10 @@ export class AuthService {
       default:
         throw new InternalServerErrorException(`error no identificado: ${err.detail}`)
     }
+  }
+  private getJwtToken(payload: JwtPayload){
+    const token = this.jwtService.sign(payload);
+    return token;
   }
 
 }
