@@ -2,12 +2,15 @@ import { createParamDecorator, ExecutionContext, InternalServerErrorException } 
 
 export const GetUser = createParamDecorator(
      (data,ctx: ExecutionContext) => {
+        
         const req= ctx.switchToHttp().getRequest()
-        const user=  req.user;
+        const user=  req.user;       
         if (!user) {
             throw new InternalServerErrorException("User not fount (request)")
         }
-        
-        return user;
+        if (data) {
+            return user[data]
+        }        
+        return (!data)?user:user[data];
     }
 )
