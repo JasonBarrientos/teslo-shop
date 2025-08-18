@@ -54,10 +54,6 @@ export class ProductsService {
 
       if (validate(term)) {
         product = await this.productRepository.findOneBy({ id: term });
-        product = {
-          ...product
-        }
-
       } else {
         const queryBulider = this.productRepository.createQueryBuilder('prod');
         product = await queryBulider.where('UPPER(title)=:title or slug=:slug', {
