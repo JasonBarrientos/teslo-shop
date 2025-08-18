@@ -17,11 +17,11 @@ export class JwtStrategy extends PassportStrategy(Strategy){
     }
     async validate(payload: JwtPayload): Promise<User> {
         
-        const {email}=payload;
+        const {id}=payload;
         const user =  await this.userRepository
         .createQueryBuilder('user')
         .addSelect(['user.isActive'])
-        .where('user.email = :email',{email})
+        .where('user.id = :id',{id})
         .getOne()
 
         if (!user) {

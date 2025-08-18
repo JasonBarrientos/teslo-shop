@@ -23,7 +23,7 @@ export class AuthService {
       await this.userRepository.save(user);
 
       return {...user,
-      token: this.getJwtToken({email:user.email})
+      token: this.getJwtToken({id:user.id})
     };;
     } catch (error) {
       this.erroHandler(error)
@@ -35,7 +35,7 @@ export class AuthService {
       where: {
         email
       },
-      select: { email: true, password: true }
+      select: { email: true, password: true ,id: true}
     });
     if (!user) {
       throw new UnauthorizedException(`Credencials are nto valid (email)`)
@@ -43,8 +43,10 @@ export class AuthService {
     if (!bcrypt.compareSync(password,user.password)) {
       throw new UnauthorizedException(`Credencials are nto valid (password)`)
     }
+    console.log(user.id);
+    
     return {...user,
-      token: this.getJwtToken({email})
+      token: this.getJwtToken({id:user.id})
     };
   }
   private erroHandler(err): never {

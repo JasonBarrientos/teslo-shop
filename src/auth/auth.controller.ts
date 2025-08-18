@@ -18,7 +18,7 @@ export class AuthController {
   }
   @Get('private')
   @UseGuards(AuthGuard())
-  testingPriateROUTE(){
+  testingPrivateRoute(){
     return {
       ok:true,
       message :"ruta privada"
