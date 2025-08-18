@@ -42,9 +42,7 @@ export class AuthService {
     }
     if (!bcrypt.compareSync(password,user.password)) {
       throw new UnauthorizedException(`Credencials are nto valid (password)`)
-    }
-    console.log(user.id);
-    
+    }    
     return {...user,
       token: this.getJwtToken({id:user.id})
     };
