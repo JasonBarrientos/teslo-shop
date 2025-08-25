@@ -6,6 +6,7 @@ import { CommonModule } from './common/common.module';
 import { MessagesWsModule } from './messages-ws/messages-ws.module';
 import { SeedModule } from './seed/seed.module';
 import { AuthModule } from './auth/auth.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [ConfigModule.forRoot(),
@@ -23,7 +24,8 @@ import { AuthModule } from './auth/auth.module';
     CommonModule,
     MessagesWsModule,
     SeedModule,
-    AuthModule
+    AuthModule,
+    FilesModule
   ],
   controllers: [],
   providers: [],
